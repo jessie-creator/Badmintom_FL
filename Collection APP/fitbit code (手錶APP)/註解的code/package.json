@@ -1,0 +1,38 @@
+{
+  "name": "code",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@fitbit/sdk": "~5.0.2",
+    "@fitbit/sdk-cli": "^1.7.3"
+  },
+  "fitbit": {
+    "appType": "app",
+
+    //這邊是app在手錶上顯示的名字
+    "appDisplayName": "test-accgyr",
+    "iconFile": "resources/icon.png",
+    "wipeColor": "#ffffff",
+    "requestedPermissions": [
+      "run_background",
+      "access_activity",
+      "access_heart_rate",
+      "access_user_profile",
+      "access_internet"
+    ],
+    "buildTargets": [
+      "atlas",
+      "vulcan"
+    ],
+    "i18n": {},
+    "defaultLanguage": "en-US",
+
+    //不要在這邊動,要用cmd改
+    "appUUID": "c1d99c39-c582-4b32-9bf4-3d1d73b749de"
+  },
+  "scripts": {
+    "build": "fitbit-build",
+    "debug": "fitbit"
+  }
+}

@@ -1,0 +1,22 @@
+au/net/gondwanasoftware/fitbitfetcher/BuildConfig.java
+ au.net.gondwanasoftware.fitbitfetcher.BuildConfig
+au/net/gondwanasoftware/fitbitfetcher/databinding/FragmentSecondBinding.java
+ au.net.gondwanasoftware.fitbitfetcher.databinding.FragmentSecondBinding
+au/net/gondwanasoftware/fitbitfetcher/databinding/ContentMainBinding.java
+ au.net.gondwanasoftware.fitbitfetcher.databinding.ContentMainBinding
+au/net/gondwanasoftware/fitbitfetcher/SecondFragment.java
+ au.net.gondwanasoftware.fitbitfetcher.SecondFragment
+ au.net.gondwanasoftware.fitbitfetcher.SecondFragment$1
+au/net/gondwanasoftware/fitbitfetcher/databinding/ActivityMainBinding.java
+ au.net.gondwanasoftware.fitbitfetcher.databinding.ActivityMainBinding
+au/net/gondwanasoftware/fitbitfetcher/databinding/FragmentFirstBinding.java
+ au.net.gondwanasoftware.fitbitfetcher.databinding.FragmentFirstBinding
+au/net/gondwanasoftware/fitbitfetcher/FirstFragment.java
+ au.net.gondwanasoftware.fitbitfetcher.FirstFragment
+au/net/gondwanasoftware/fitbitfetcher/MainActivity.java
+ au.net.gondwanasoftware.fitbitfetcher.MainActivity
+ au.net.gondwanasoftware.fitbitfetcher.MainActivity$1
+ au.net.gondwanasoftware.fitbitfetcher.MainActivity$2
+ au.net.gondwanasoftware.fitbitfetcher.MainActivity$3
+ au.net.gondwanasoftware.fitbitfetcher.MainActivity$4
+ au.net.gondwanasoftware.fitbitfetcher.MainActivity$5

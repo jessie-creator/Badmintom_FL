@@ -1,0 +1,1524 @@
+from kivy.app import App
+from kivy.lang import Builder
+from kivy.uix.label import Label
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.widget import Widget
+from kivy.uix.button import Button
+from kivy.graphics import Canvas, Color, RoundedRectangle, Rectangle
+from kivy.core.text import LabelBase
+from kivy.core.window import Window
+import os
+import csv
+import numpy as np
+from sklearn.model_selection import train_test_split
+import torch
+from torch import nn
+from torch.utils.data import Dataset, TensorDataset, DataLoader
+#from fabric import Connection
+import time
+from kivy.app import App
+from kivy.lang import Builder
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.widget import Widget
+from kivy.uix.button import Button
+from kivy.uix.image import Image
+from kivy.uix.popup import Popup
+from kivy.graphics import Canvas, Color, RoundedRectangle, Rectangle
+from kivy.core.text import LabelBase
+from kivy.core.window import Window
+import os
+import csv
+import numpy as np
+from sklearn.model_selection import train_test_split
+import torch
+from torch import nn
+from torch.utils.data import Dataset, TensorDataset, DataLoader
+
+
+# Create both screens. Please note the root.manager.current: this is how
+# you can control the ScreenManager from kv. Each screen has by default a
+# property manager that gives you the instance of the ScreenManager used.
+
+# 设置全局字体
+current_directory = os.getcwd()
+phone_path = ''
+#phone_path = 'Download/TensorFlowLite_1/TensorFlowLite'
+# 设置全局字体
+#LabelBase.register(name='custom_font',
+#        fn_regular='C:/Users/Irene/project/jf-openhuninn-1.1/jf-openhuninn-1.1.ttf')
+LabelBase.register(name='custom_font',
+        fn_regular=os.path.join(current_directory, phone_path, 'jf-openhuninn-1.1/jf-openhuninn-1.1.ttf'))
+
+
+# 获取屏幕宽度和高度
+screen_width = Window.width
+screen_height = Window.height
+
+# 定义一个BoxLayout，它将在KV字符串中使用
+class MyBoxLayout(BoxLayout):
+    pass
+
+class MarkPopup(Popup):
+    pass
+
+class MyButton(Button):
+    def __init__(self, **kwargs):
+        super(MyButton, self).__init__(**kwargs)
+        self.bold = True
+        self.color = (68/255, 124/255, 104/255, 1)
+        self.background_color = (155/255, 197/255, 183/255, 0)
+        with self.canvas.before:
+            Color(155/255, 197/255, 183/255, 1)
+            self.rect = RoundedRectangle(pos=self.pos, size=self.size)
+        self.bind(pos=self.update_rect, size=self.update_rect)
+        self.font_name = 'custom_font'
+
+    def update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+
+class MyButton_c(Button):
+    def __init__(self, **kwargs):
+        super(MyButton_c, self).__init__(**kwargs)
+        self.bold = True
+        self.color1 = (68/255, 124/255, 104/255, 1)  # 状态1的颜色
+        self.color2 = (1, 1, 1, 1)  # 状态2的颜色
+        self.background_color1 = (155/255, 197/255, 183/255, 1)  # 状态1的背景颜色
+        self.background_color2 = (68/255, 124/255, 104/255, 1)  # 状态2的背景颜色
+        with self.canvas.before:
+            Color(*self.background_color1)
+            self.rect = RoundedRectangle(pos=self.pos, size=self.size)
+        self.background_color = (155/255, 197/255, 183/255, 0)
+        self.bind(pos=self.update_rect, size=self.update_rect)
+        self.font_name = 'custom_font'
+        self.state_costom = 'state1'  # 记录按钮状态
+        self.update_color(self.color1, self.background_color1)
+
+    def update_rect(self, instance, value):
+        self.rect.pos = instance.pos
+        self.rect.size = instance.size
+
+    def on_release(self):
+        if self.state_costom == 'state1':
+            self.set_state2()
+        elif self.state_costom == 'state2':
+            self.set_state1()
+
+    def set_state1(self):
+        self.state_costom = 'state1'
+        self.update_color(self.color1, self.background_color1)
+
+    def set_state2(self):
+        # 更新其他按钮为state1
+        #for child in self.parent.children:
+            #if isinstance(child, MyButton) and child != self and child.state == 'state2':
+                #child.set_state1()
+        self.state_costom = 'state2'
+        self.update_color(self.color2, self.background_color2)
+
+    def update_color(self, color, background_color):
+        self.color = color
+        #self.canvas.clear()  # Clear previous drawing commands
+        #with self.canvas.before:
+            #Color(*background_color)
+            #self.rect = RoundedRectangle(pos=self.pos, size=self.size)  # Redraw the RoundedRectangle
+        #self.text_color = color  # 设置文本颜色
+    #def on_press(self):
+        # 这里使用 root 来访问 MarkScreen 的实例
+        #MarkScreen.toggle_button(self)
+
+my_layout = MyBoxLayout()
+my_layout.screen_width = screen_width
+my_layout.screen_height = screen_height
+
+Builder.load_string("""
+<HomeScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: 234/255, 244/255, 240/255, 1  # 设置背景颜色
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        # 状态栏
+        BoxLayout:
+            size_hint: 1, 0.1
+            Label:
+                text: ''
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+        Label:
+            size_hint_y: 0.05
+        BoxLayout:
+            size_hint: 1, 0.25
+            Image:
+                source: 'logo.png'
+                size: 150, 150
+        Label:
+            size_hint_y: 0.05
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint:1, 0.08
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                text: 'Swing'
+                size_hint_x: 0.7
+                on_press: root.manager.current = 'swing'
+            Widget:
+                size_hint_x: 0.15
+        Label:
+            size_hint_y: 0.1
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: 1,0.08
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                text: 'Score'
+                size_hint_x: 0.7
+                on_press: root.manager.current = 'score'
+            Widget:
+                size_hint_x: 0.15
+        Label:
+            size_hint_y: 0.1
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: 1, 0.08
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                text: 'Update Model'
+                size_hint_x: 0.7
+            Widget:
+                size_hint_x: 0.15
+        Label:
+            size_hint: 1, 0.11
+
+<SwingScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: 234/255, 244/255, 240/255, 1  # 设置背景颜色
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        BoxLayout:
+            size_hint: 1, 0.1
+            orientation: 'horizontal'
+            #Label:
+                #size_hint: 0.03, 1
+                #text: ''
+                #font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                #canvas.before:
+                    #Color:
+                        #rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    #Rectangle:
+                        #pos: self.pos
+                        #size: self.size
+            Button:
+                size_hint: 0.2, 1
+                background_normal: 'home.png'
+                background_down: 'home.png'
+                #text: 'Home'
+                #color: 234/255, 244/255, 240/255, 1
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                on_press: root.manager.current = 'home'
+            Label:
+                size_hint: 0.65, 1
+                text: 'Swing Screen'
+                font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+            Label:
+                size_hint: 0.15, 1
+                text: ''
+                font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+        #Button:
+            #text: 'This is SwingScreen'
+            #font_name: 'custom_font'
+            #on_press: root.local_train()
+        Label:
+            size_hint: 1, 0.05
+        Label:
+            size_hint: 1, 0.05
+            text: '請選擇球種:'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+        Label:
+            size_hint: 1, 0.02
+        BoxLayout:
+            size_hint: 1, 0.08
+            orientation: 'horizontal'
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                size_hint_x: 0.3
+                text: '高遠球'
+                on_press:
+                    root.pitch_type_state('high')
+                    root.print_variables()
+            Widget:
+                size_hint_x: 0.1
+            MyButton:
+                size_hint_x: 0.3
+                text: '挑球'
+                on_press:
+                    root.pitch_type_state('short')
+                    root.print_variables()
+            Widget:
+                size_hint_x: 0.15
+        Label:
+            size_hint: 1, 0.02
+        Label:
+            size_hint: 1, 0.05
+            text: '請選擇左右手:'
+            font_name: 'custom_font'
+            bold: True
+            color: 68/255, 124/255, 104/255, 1
+        Label:
+            size_hint: 1, 0.02
+        BoxLayout:
+            size_hint: 1, 0.08
+            orientation: 'horizontal'
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                size_hint_x: 0.3
+                text: '左手'
+                on_press:
+                    root.dominant_hand_state('left')
+                    root.print_variables()
+            Widget:
+                size_hint_x: 0.1
+            MyButton:
+                size_hint_x: 0.3
+                text: '右手'
+                on_press:
+                    root.dominant_hand_state('right')
+                    root.print_variables()
+            Widget:
+                size_hint_x: 0.15
+        #Button:
+            #text: 'choose file'
+            #font_name: 'custom_font'
+            #on_press: root.manager.current = 'choose_file'
+        Label:
+            size_hint: 1, 0.1
+        #Label:
+        #    id: status_label
+        BoxLayout:
+            size_hint: 1, 0.08
+            orientation: 'horizontal'
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                size_hint_x: 0.7
+                text: 'evaluate'
+                on_press:
+                    root.lstm_prediction()
+                    root.manager.current = 'score'
+            Widget:
+                size_hint_x: 0.15
+        Label:
+            size_hint: 1, 0.05
+        BoxLayout:
+            size_hint: 1, 0.08
+            orientation: 'horizontal'
+            Widget:
+                size_hint_x: 0.15
+            MyButton:
+                size_hint_x: 0.7
+                text: '教練打分'
+                on_press: root.manager.current = 'mark'
+            Widget:
+                size_hint_x: 0.15
+        Label:
+            size_hint: 1, 0.22
+        #BoxLayout:
+            #orientation: 'horizontal'
+            #Button:
+                #size_hint_x: 1
+                #text: 'Back to home'
+                #font_name: 'custom_font'
+                #on_press: root.manager.current = 'home'
+
+<MarkScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: 234/255, 244/255, 240/255, 1  # 设置背景颜色
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        BoxLayout:
+            size_hint: 1, 0.1
+            orientation: 'horizontal'
+            #Label:
+                #size_hint: 0.03, 1
+                #text: ''
+                #font_name: 'custom_font'
+                #anvas.before:
+                    #Color:
+                        #rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    #Rectangle:
+                        #pos: self.pos
+                        #size: self.size
+            Button:
+                size_hint: 0.2, 1
+                background_normal: 'home.png'
+                background_down: 'home.png'
+                color: 234/255, 244/255, 240/255, 1
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                on_press: root.manager.current = 'home'
+            Label:
+                size_hint: 0.65, 1
+                text: 'Mark Screen'
+                font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+            Label:
+                size_hint: 0.15, 1
+                text: ''
+                font_name: 'custom_font'
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+        #Button:
+            #text: 'This is ScoreScreen'
+            #font_name: 'custom_font'
+        #Button:
+            #text: 'Back to home'
+            #font_name: 'custom_font'
+            #on_press: root.manager.current = 'home'
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '揮拍軌跡正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '1'
+                on_press: root.on_button_click(0,0)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '2'
+                on_press: root.on_button_click(0,1)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '3'
+                on_press: root.on_button_click(0,2)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '4'
+                on_press: root.on_button_click(0,3)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '5'
+                on_press: root.on_button_click(0,4)
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '揮拍速度流暢度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '1'
+                on_press: root.on_button_click(1,0)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '2'
+                on_press: root.on_button_click(1,1)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '3'
+                on_press: root.on_button_click(1,2)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '4'
+                on_press: root.on_button_click(1,3)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '5'
+                on_press: root.on_button_click(1,4)
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '手腕轉動時機正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '1'
+                on_press: root.on_button_click(2,0)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '2'
+                on_press: root.on_button_click(2,1)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '3'
+                on_press: root.on_button_click(2,2)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '4'
+                on_press: root.on_button_click(2,3)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '5'
+                on_press: root.on_button_click(2,4)
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '擊球時機正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '1'
+                on_press: root.on_button_click(3,0)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '2'
+                on_press: root.on_button_click(3,1)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '3'
+                on_press: root.on_button_click(3,2)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '4'
+                on_press: root.on_button_click(3,3)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '5'
+                on_press: root.on_button_click(3,4)
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '擊球位置正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '1'
+                on_press: root.on_button_click(4,0)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '2'
+                on_press: root.on_button_click(4,1)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '3'
+                on_press: root.on_button_click(4,2)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '4'
+                on_press: root.on_button_click(4,3)
+            Label:
+                size_hint_x: 0.075
+            MyButton_c:
+                size_hint_x: 0.08
+                text: '5'
+                on_press: root.on_button_click(4,4)
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.05
+        BoxLayout:
+            size_hint: 1, 0.075
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.25
+            MyButton:
+                size_hint_x: 0.5
+                text: 'Commit'
+                on_press: root.check_conditions()
+            Label:
+                size_hint_x: 0.25
+        Widget:
+            size_hint_y: 0.05
+
+<MarkPopup>:
+
+    size_hint: None, None
+    size: 300, 200
+    auto_dismiss: False  # 防止点击外部区域关闭对话框
+    title_background_color: 68/255, 124/255, 104/255, 1
+
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+        Widget:
+            size_hint_y: 0.1
+        Label:
+            size_hint: 1, 0.2
+            text: 'Please choose one and only one score' # in each option.'
+        Label:
+            size_hint: 1, 0.2
+            text: 'in each section.'
+        Widget:
+            size_hint_y: 0.1
+        BoxLayout:
+            size_hint: 1, 0.3
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            MyButton:
+                size_hint_x: 0.7
+                text: 'Close'
+                on_press: root.dismiss()
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.15
+
+        #MyButton:
+           #text: 'Close'
+           #on_press: root.dismiss()
+
+<ScoreScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Color:
+                rgba: 234/255, 244/255, 240/255, 1  # 设置背景颜色
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        BoxLayout:
+            size_hint: 1, 0.1
+            orientation: 'horizontal'
+            #Label:
+                #size_hint: 0.03, 1
+                #text: ''
+                #font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                #canvas.before:
+                    #Color:
+                        #rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    #Rectangle:
+                        #pos: self.pos
+                        #size: self.size
+            Button:
+                size_hint: 0.2, 1
+                background_normal: 'home.png'
+                background_down: 'home.png'
+                color: 234/255, 244/255, 240/255, 1
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                on_press: root.manager.current = 'home'
+            Label:
+                size_hint: 0.65, 1
+                text: 'Score Screen'
+                font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+            Label:
+                size_hint: 0.15, 1
+                text: ''
+                font_name: 'custom_font'
+                #color: 68/255, 124/255, 104/255, 1
+                # 这里可以添加状态栏的其他内容，例如时间、信息等
+                canvas.before:
+                    Color:
+                        rgba: 68/255, 124/255, 104/255, 1  # 设置背景颜色
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+        Widget:
+            size_hint_y: 0.06
+        Label:
+            size_hint: 1, 0.05
+            text: '揮拍軌跡正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+            canvas.before:
+                Color:
+                    rgba: 155/255, 197/255, 183/255, 1  # 设置背景颜色
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            Label:
+                id: score_1
+                size_hint_x: 0.7
+                #text: root.score_1
+                bold: True
+                font_name: 'custom_font'
+                color: 68/255, 124/255, 104/255, 1
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '揮拍速度流暢度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+            canvas.before:
+                Color:
+                    rgba: 155/255, 197/255, 183/255, 1  # 设置背景颜色
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            Label:
+                id: score_2
+                size_hint_x: 0.7
+                #text: root.score_2
+                bold: True
+                font_name: 'custom_font'
+                color: 68/255, 124/255, 104/255, 1
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '手腕轉動時機正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+            canvas.before:
+                Color:
+                    rgba: 155/255, 197/255, 183/255, 1  # 设置背景颜色
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            Label:
+                id: score_3
+                size_hint_x: 0.7
+                #text: root.score_3
+                bold: True
+                font_name: 'custom_font'
+                color: 68/255, 124/255, 104/255, 1
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '擊球時機正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+            canvas.before:
+                Color:
+                    rgba: 155/255, 197/255, 183/255, 1  # 设置背景颜色
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            Label:
+                id: score_4
+                size_hint_x: 0.7
+                #text: root.score_4
+                bold: True
+                font_name: 'custom_font'
+                color: 68/255, 124/255, 104/255, 1
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.03
+        Label:
+            size_hint: 1, 0.05
+            text: '擊球位置正確度'
+            bold: True
+            font_name: 'custom_font'
+            color: 68/255, 124/255, 104/255, 1
+            canvas.before:
+                Color:
+                    rgba: 155/255, 197/255, 183/255, 1  # 设置背景颜色
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        Widget:
+            size_hint_y: 0.03
+        BoxLayout:
+            size_hint: 1, 0.05
+            orientation: 'horizontal'
+            font_name: 'custom_font'
+            Label:
+                size_hint_x: 0.15
+            Label:
+                id: score_5
+                size_hint_x: 0.7
+                text: '分數' 
+                bold: True
+                font_name: 'custom_font'
+                color: 68/255, 124/255, 104/255, 1
+            Label:
+                size_hint_x: 0.15
+        Widget:
+            size_hint_y: 0.05
+        #Button:
+            #text: 'This is ScoreScreen'
+            #font_name: 'custom_font'
+        #Button:
+            #text: 'Back to home'
+            #font_name: 'custom_font'
+            #on_press: root.manager.current = 'home'
+
+""")
+
+# Declare both screens
+class HomeScreen(Screen):
+    def update_model(self):
+        pass
+
+class SharedScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def get_input_path_for_cutdata(self):
+        return TestApp.data_path['txt_file_path']
+
+    def get_output_path_for_cutdata(self, pitch_type):
+        mark = True
+        if(mark):
+            return TestApp.data_path['csv_file_path_with_mark']+f'{pitch_type}/'
+        return TestApp.data_path['csv_file_path_without_mark']+f'{pitch_type}/'
+
+    def set_folder_path(self, input_path, output_path):
+        TestApp.shared_data['input_folder_path'] = input_path
+        TestApp.shared_data['output_folder_path'] = output_path
+
+    def get_folder_path(self):
+        return TestApp.shared_data['input_folder_path'], TestApp.shared_data['output_folder_path']
+
+    def set_pitch_type(self, value):
+        TestApp.shared_data['pitch_type'] = value
+
+    def get_pitch_type(self):
+        if TestApp.shared_data['pitch_type'] == 'high':
+            n = 6
+            timeLength = 60
+        else:
+            n = 5
+            timeLength = 50
+        return TestApp.shared_data['pitch_type'], n, timeLength
+
+    def set_dominant_hand(self, value):
+        TestApp.shared_data['dominant_hand'] = value
+
+    def get_dominant_hand(self):
+        return TestApp.shared_data['dominant_hand']
+
+class SwingScreen(SharedScreen):
+    #current_directory = ''
+    #phone_path = ''
+    #phone_path = 'Download/TensorFlowLite_1/TensorFlowLite'
+    status_text = 'not yet'
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.current_directory = os.getcwd()
+        self.status_text = TestApp.shared_data['status']
+
+    def get_font_path(self):
+        return TestApp.data_path['font_path']
+
+    def pitch_type_state(self, value):
+        self.set_pitch_type(value)
+
+    def dominant_hand_state(self, value):
+        self.set_dominant_hand(value)
+
+    def print_variables(self):
+        print(f'pitch_type: {self.get_pitch_type()}')
+        print(f'dominant_hand: {self.get_dominant_hand()}')
+
+    def local_train(self):
+        #pass
+        label = self.ids.status_label
+        try:
+            obj = Local_Train()
+            print('create success')
+        #except Exception as e:
+            #print(f'create obj failed{e}')
+            #label.text = f'create obj failed{e}'
+
+            obj.train_lstm_classification()
+            label.text = 'local train success, accuracy: ' + TestApp.shared_data['train_acc'] # + 'test_acc: ' + TestApp.shared_data['test_acc']
+            print('local train success, train_acc: ' + TestApp.shared_data['train_acc'] + 'test_acc: ' + TestApp.shared_data['test_acc'])
+        except Exception as e:
+            print(f'local train failed{e}')
+            label.text = f'local train failed{e}'
+
+    def lstm_prediction(self):
+        try:
+            obj = Local_Train()
+            print('create success')
+            obj.lstm_pred()
+            #print('local train success, train_acc: ' + TestApp.shared_data['train_acc'] + 'test_acc: ' + TestApp.shared_data['test_acc'])
+        except Exception as e:
+            print(f'lstm prediction failed{e}')
+#            label.text = f'local train failed{e}'
+    
+    def update_label(self):
+        self.status_text = TestApp.shared_data['status']#self.get_status()
+
+    def test_for_DataPre(self):
+        label = self.ids.status_label
+        try:
+            obj = DataPreprocessing()
+            obj.cut_data()
+            data_str = ', '.join(str(item) for item in TestApp.shared_data['data'])
+            label.text = 'data: ' + data_str
+        except Exception as e:
+            label.text = f'data preprocessing failed{e}'
+        #TestApp.shared_data['status'] = 'successful data preprocessing\n'
+
+    def get_status(self):
+        return TestApp.shared_data['status']
+
+class ScoreScreen(SharedScreen):
+    def on_enter(self):
+        scores = TestApp.shared_data['score']
+        print('my_scoresx_test_tensor = torch.from_numpy(x_test).float()', scores)
+        self.ids.score_1.text = scores[0]
+        self.ids.score_2.text = scores[1]
+        self.ids.score_3.text = scores[2]
+        self.ids.score_4.text = scores[3]
+        self.ids.score_5.text = scores[4]
+#    def score_5(self):
+#        label = label.ids.score_5
+#        label.text = scores[4]
+
+class MarkScreen(SharedScreen):
+
+    mark_sheet = [[0] * 5 for _ in range(5)]
+
+    def on_pre_enter(self, *args):
+        # 在进入 MarkScreen 之前调用，重新初始化 mark_sheet
+        self.mark_sheet = [[0] * 5 for _ in range(5)]
+        for child in self.walk():
+            if isinstance(child, MyButton_c):
+                child.set_state1()
+
+    def check_conditions(self):
+        # Check conditions and show the appropriate popup
+        for col in range(len(self.mark_sheet[0])):
+            count_ones = sum(row[col] for row in self.mark_sheet)
+            if count_ones != 1:
+                # 如果某一列没有且仅有一个1，则不满足条件
+                self.show_popup()
+                return
+        # 满足条件，切换到 'swing' 屏幕
+        app = App.get_running_app()
+        app.root.current = 'swing'
+
+    def show_popup(self):
+        #content = MarkPopup()
+        #popup = Popup(title='Hint', content=content)
+        #popup.open()
+        MarkPopup(title= 'Hint').open()
+
+    def on_button_click(self, col, row):
+        # 按钮被点击时，根据按钮的位置更新 mark_sheet
+        if self.mark_sheet[row][col] == 1:
+            self.mark_sheet[row][col] = 0
+        else:
+            self.mark_sheet[row][col] = 1
+
+
+class DataPreprocessing(SharedScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.target_files = []
+        self.n = 6
+        self.timeLenth = 60
+
+    def slope(self, input_data):
+        slope_col = np.zeros(len(input_data),dtype=float)
+        for i in range(len(input_data) - 1):
+            for j in range(1,4):
+                temp = input_data[i+1][j] - input_data[i][j]
+                slope_col[i] += temp**2
+            slope_col[i] = slope_col[i]**0.5
+        return slope_col
+
+    def ma(self, slope_col, n):
+        slope_ma = np.zeros(len(slope_col),dtype=float)
+        for i in range(n,len(slope_col)-n):
+            for j in range(-n,n+1):
+                slope_ma[i] += slope_col[i+j]
+            slope_ma[i] /= float(2*n+1)
+        return slope_ma
+
+    def data_cut(self, input_data, save_data, hit_type, n):
+        slope_col = self.slope(input_data)
+        slope_avg = np.average(slope_col)
+        slope_ma = self.ma(slope_col, n)
+        for i in range(60,len(slope_col)-50):
+            if ( slope_ma[i] > slope_avg ) and ( slope_col[i]==max(slope_col[i-50:i+50]) ) : # 找到可能峰值
+                start = 0  # 向前&向後找起點
+                end = 0
+                while i+start > (50+n) :
+                    start -= 1
+                    if slope_ma[i+start] <= slope_avg:
+                        break
+                while i+end < (len(slope_col)-50-n) :
+                    end += 1
+                    if slope_ma[i+end] <= slope_avg:
+                        break
+                if hit_type == 'high' and end-start > 40 and slope_ma[i] > 15: # 依球種分類存入 save_data
+                    save_data.append(input_data[i-45:i+15, [1,2,3,5,6,7]])
+                elif hit_type == 'short' and end-start > 20 and slope_ma[i] > 15: # 挑球
+                    save_data.append(input_data[i-35:i+15, [1,2,3,5,6,7]])
+    # Removes null bytes from the input file and returns a sanitized version of the file.
+    def sanitize_file(self, input_file_path):
+        sanitized_content = ""
+        with open(input_file_path, 'r', encoding='utf-8', errors='replace') as f:
+            content = f.read()
+            sanitized_content = content.replace('\x00', '')
+        return sanitized_content
+
+    def cut_data(self):
+        data_path = self.get_input_path_for_cutdata()
+        hittype_name, n, timeLenth = self.get_pitch_type()
+        try:
+            # 取得該路徑下所有的檔案名稱
+            all_files = os.listdir(data_path)
+
+            # 過濾出所有的 .txt 檔案
+            txt_files = [file_name for file_name in all_files if file_name.endswith('.txt') and hittype_name in file_name and len(file_name)>=30]
+
+            TestApp.shared_data['labels'] = np.empty((0, 5), dtype=int)
+            TestApp.shared_data['data'] = np.empty((0, timeLenth, 6), dtype=float)
+
+            for t, input_filename in enumerate(txt_files):
+
+                input_file_path = os.path.join(data_path, input_filename)
+
+                # Sanitize the file by removing null bytes
+                sanitized_content = self.sanitize_file(input_file_path)
+
+                lines = sanitized_content.split('\n')
+
+                # Starting from the last line, move upwards until a complete line (with 7 commas) is found
+                while lines and lines[-1].count(",") != 7:
+                    lines = lines[:-1]
+
+                # Load the (potentially modified) data into a numpy array
+                input_data = np.loadtxt(lines, delimiter=",", dtype=float)
+
+                save_data = []
+
+                self.data_cut(input_data, save_data, hittype_name, n)
+                save_data = np.array(save_data).astype(float)
+
+                TestApp.shared_data['data'] = np.concatenate((TestApp.shared_data['data'], save_data), axis=0)
+
+                label_values = np.array([int(ch) for ch in input_filename[6:11]])  # 轉換為整數陣列
+
+                label_values = label_values[np.newaxis, :]  # 增加一個維度以使其成為二維陣列
+
+                for i in range(len(save_data)):
+                    TestApp.shared_data['labels'] = np.vstack((TestApp.shared_data['labels'], label_values))
+        except Exception as e:
+            print(f'Data cut failed: {e}')
+            TestApp.shared_data['status'] = f'Data cut failed: {e}'
+            TestApp.status_label = f"Data cut failed: {e}"
+
+    def algo_for_choose_file_to_train(self):
+        pass
+
+
+class Local_Train(SharedScreen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+#        target_files = []
+    def train_lstm_classification(self):
+        try:
+            obj = DataPreprocessing()
+            print('create datapre success\n')
+            obj.cut_data()
+            print('cut_data success\n')
+        except Exception as e:
+            print(f'failed {e}')
+        try:
+            x_train, x_test, y_train, y_test = train_test_split(TestApp.shared_data['data'], TestApp.shared_data['labels'], test_size=TestApp.train_parameter['test_ratio'], random_state=24)
+
+            x_train = x_train.reshape(x_train.shape)
+            x_test = x_test.reshape(x_test.shape)
+            # 使用MyDataset類
+            train_dataset = MyDataset(x_train, y_train)
+            test_dataset = MyDataset(x_test, y_test)
+
+            # 使用DataLoader來創建數據集對象
+            train_dataloader = DataLoader(train_dataset, batch_size=TestApp.train_parameter['batch_size'], shuffle=True)
+            test_dataloader = DataLoader(test_dataset, batch_size=TestApp.train_parameter['batch_size'], shuffle=False)
+            # Instantiate the custom model
+            model = CustomLSTMModel(input_size=TestApp.train_parameter['input_size'], units=64, output_dim=TestApp.train_parameter['output_dim'], num_layers=TestApp.train_parameter['num_layers'], dropout_rate=TestApp.train_parameter['dropout_rate'])
+            # 定義損失函數和優化器
+            optimizer = torch.optim.Adam(model.parameters(), lr=TestApp.train_parameter['learning_rate'])
+            loss_fn = CustomFunc.custom_loss
+            # 訓練循環
+            early_stopping = EarlyStopping(patience=10, min_delta=0.01)
+            for epoch in range(TestApp.train_parameter['numEpoch']):
+                model.train()
+                for x_batch, y_batch in train_dataloader:
+                    optimizer.zero_grad()
+                    y_pred = model(x_batch)
+                    loss = loss_fn(y_batch, y_pred)
+                    loss.backward()
+                    optimizer.step()
+
+                # 評估
+                model.eval()
+                with torch.no_grad():
+                    total_loss = 0
+                    total_accuracy = 0
+                    for x_batch, y_batch in test_dataloader:
+                        y_pred = model(x_batch)
+                        predouput = CustomFunc.custom_prediction(y_pred)
+                        print(predouput)
+                        total_loss += loss_fn(y_batch, y_pred).item()
+                        total_accuracy += CustomFunc.custom_accuracy(y_batch, y_pred).item()
+                avg_loss = total_loss / len(test_dataloader)
+                avg_accuracy = total_accuracy / len(test_dataloader)
+                print(f'Epoch {epoch+1}, Loss: {avg_loss}, Accuracy: {avg_accuracy}')
+                TestApp.shared_data['train_acc'] = str(round(avg_accuracy, 4))
+                # 定義模型的路徑和檔名
+                model_path = 'my_model.pth'
+
+                # 保存模型參數到檔案
+                torch.save(model.state_dict(), model_path)
+                # Early Stopping 檢查
+                early_stopping(avg_loss)
+                if early_stopping.early_stop:
+                    print("Early stopping triggered")
+                    break
+        except Exception as e:
+            print(f'local train failed: {e}')
+            TestApp.shared_data['status'] = f'local train failed: {e}'
+            TestApp.status_label = f"local train failed: {e}"
+        return
+
+    def lstm_pred(self):
+        TestApp.shared_data['score'] = np.empty((0, 5), dtype=int)
+        try:
+            obj = DataPreprocessing()
+            print('create datapre success\n')
+            obj.cut_data()
+            print('cut_data success\n')
+        except Exception as e:
+            print(f'failed {e}')
+        try:
+            x_train, x_test, y_train, y_test = train_test_split(TestApp.shared_data['data'], TestApp.shared_data['labels'], test_size=1, random_state=24)
+            x_test = x_test.reshape(x_test.shape)
+            model = CustomLSTMModel(input_size=TestApp.train_parameter['input_size'], units=64, output_dim=TestApp.train_parameter['output_dim'], num_layers=TestApp.train_parameter['num_layers'], dropout_rate=TestApp.train_parameter['dropout_rate'])
+            model_path = 'my_model.pth'  # 模型參數檔案的路徑
+            model.load_state_dict(torch.load(model_path))
+            test_dataset = MyDataset(x_test, y_test)
+            test_dataloader = DataLoader(test_dataset, batch_size=len(x_test), shuffle=False)
+            model.eval()
+            with torch.no_grad():
+                for x_batch, y_batch in test_dataloader:
+                    y_pred = model(x_batch)
+                    y_pred = CustomFunc.custom_prediction(y_pred)
+            TestApp.shared_data['score'] = y_pred
+            print('score: ', TestApp.shared_data['score'])
+        except Exception as e:
+            print(f'failed {e}')
+        return
+
+
+class CustomFunc():
+    # 自定義輸出函數
+    def custom_output(x):
+        return x
+
+    # 自定義損失函數
+    def custom_loss(y_true, y_pred):
+        loss = torch.mean((y_true - y_pred) ** 2)
+        return loss
+
+    # 自定義準確性函數
+    def custom_accuracy(y_true, y_pred):
+        return torch.mean((torch.abs(y_true - y_pred) < 0.5).float(), dtype=torch.float32)
+
+    def custom_prediction(y_pred):
+        pred = torch.mean(y_pred, axis=0)
+        return np.round(pred) - 1
+
+# lstm
+class CustomLSTMModel(nn.Module):
+    def __init__(self, input_size, units, output_dim, num_layers, dropout_rate):
+        super(CustomLSTMModel, self).__init__()
+        self.lstm_layers = nn.ModuleList(
+                [nn.LSTM(input_size if i == 0 else units, units, batch_first=True) for i in range(num_layers)]
+                )
+        self.dropout = nn.Dropout(p=dropout_rate)
+        self.dense = nn.Linear(units, output_dim)
+
+    def forward(self, x):
+        for lstm_layer in self.lstm_layers:
+            x, _ = lstm_layer(x)
+            x = self.dropout(x)  # Apply dropout after each LSTM layer
+        # Use the output of the last LSTM layer (x) for prediction
+        output = self.dense(x[:, -1, :])  # Selecting the output from the last time step for prediction
+        return CustomFunc.custom_output(output)
+
+
+# GRU
+class CustomGRUModel(nn.Module):
+    def __init__(self, input_size, units, output_dim, num_layers, dropout_rate):
+        super(CustomGRUModel, self).__init__()
+        self.gru_layers = nn.ModuleList(
+                [nn.GRU(input_size if i == 0 else units, units, batch_first=True) for i in range(num_layers)]
+                )
+        self.dropout = nn.Dropout(p=dropout_rate)
+        self.dense = nn.Linear(units, output_dim)
+
+    def forward(self, x):
+        for gru_layer in self.gru_layers:
+            x, _ = gru_layer(x)
+            x = self.dropout(x)
+        x = x[:, -1, :]  # 只取序列的最後一個時間步
+        x = self.dense(x)
+        return CustomFunc.custom_output(x)
+
+class MyDataset(Dataset):
+    def __init__(self, data, labels):
+        self.data = data
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        x = self.data[index]
+        y = self.labels[index]
+        return torch.tensor(x, dtype=torch.float32), torch.tensor(y, dtype=torch.float32)
+
+# Early Stopping 早停法
+class EarlyStopping:
+    def __init__(self, patience=5, min_delta=0):
+        """
+        Early stopping utility.
+
+        :param patience: 數量的 epochs，在這些 epochs 中如果損失沒有改善，則提前停止訓練。
+        :param min_delta: 被認為是改善的最小變化量。
+        """
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif self.best_loss - val_loss > self.min_delta:
+            self.best_loss = val_loss
+            self.counter = 0
+        else:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+
+#class FedML_client():
+    #    def transfer_model():
+#        pass
+'''
+    def transfer_model(self):
+        # 设置服务器连接参数
+        hostname = '140.119.164.17'
+        username = 'ttsai'
+        private_key_path = '/home/jessie/app/rsa_key/id_rsa_lab'  # 你的RSA私钥文件路径
+
+        # 创建连接
+        c = Connection(host=hostname, user=username, connect_kwargs={'key_filename': private_key_path})
+
+        # 获取当前时间
+        start_time = time.time()
+
+        # 计时器，表示已经过去了多少秒
+        elapsed_time = 0
+
+        # 循环执行，每1分钟打印一次"hi"
+        while elapsed_time < 4 * 30:  # 2分钟 = 4 * 30秒
+
+            output_file_name = str(elapsed_time)+'.txt'
+
+            local_file_path = '/home/jessie/app/transfer_model/' + output_file_name
+            #開啟要寫入的檔案
+            with open(local_file_path, 'w') as output_file:
+                # 寫入讀取的檔案內容到新檔案
+                output_file.write(output_file_name)
+
+
+            # 指定本地文件和远程目标路径
+            remote_file_path = '/home/ttsai/1121_project_badminton/'
+
+            # 使用 Fabric 的 put 方法传输文件
+            c.put(local=local_file_path, remote=remote_file_path)
+
+            print(f'File {local_file_path} has been uploaded to {hostname}:{remote_file_path}')
+
+            time.sleep(30)  # 休眠30秒
+            elapsed_time = time.time() - start_time
+
+        # 关闭连接
+        c.close()
+        print("finish")
+'''
+''' 如果做同步傳輸的話改這個
+    def send_model():
+        pass
+
+    def receive():
+        pass
+'''
+
+#    def aggregate():
+#        pass
+
+class TestApp(App):
+    current_directory = os.getcwd()
+    phone_path = ''
+    #phone_path = 'Download/TensorFlowLite_1/TensorFlowLite'
+    data_path = {
+            'font_path': os.path.join(current_directory, phone_path, 'ui_reference/fonts/SimSun.ttf'),
+            'txt_file_path': os.path.join(current_directory, phone_path, 'data_from_watch/'),
+            'csv_file_path_with_mark': os.path.join(current_directory, phone_path,  'cutted_data_with_mark/'),
+            'csv_file_path_without_mark': os.path.join(current_directory, phone_path,  'cutted_data_without_mark/'),
+            'model_path': os.path.join(current_directory, phone_path, 'local_model/')
+            }
+    shared_data = {
+            'pitch_type': '',
+            'dominant_hand': '',
+            'data': [],
+            'labels': [], # 分人，未來會刪掉
+            'mistake_types': [],
+            'score': [],
+            'status': '',
+            'train_acc': '',
+            'test_acc': ''
+            }
+
+    train_parameter = {
+            #常數放置區
+            'learning_rate': 0.01,
+            'batch_size': 20,
+            'numEpoch': 40,
+            'output_dim': 5,
+            'num_layers': 2,
+            'dropout_rate': 0.1,
+            'input_size': 6,
+            'train_ratio': 0.8,
+            'test_ratio': 0.2
+            }
+    status_label = 'not yet'
+    def build(self):
+        # Create the screen manager
+        sm = ScreenManager()
+        sm.add_widget(HomeScreen(name='home'))
+        sm.add_widget(SwingScreen(name='swing'))
+        sm.add_widget(MarkScreen(name='mark'))
+        sm.add_widget(ScoreScreen(name='score'))
+
+        return sm
+
+if __name__ == '__main__':
+    TestApp().run()

@@ -1,0 +1,6 @@
+由於我在上傳node module時有遇到一些問題，因此檔案可能會有缺失
+
+要解決的話，在24/1/12日，我確認可以把 accgyr-fetcher 中，整個node module資料夾刪除之後，在母資料夾的cmd中輸入npm install，
+雖然他會報一些錯，但是就可以成功用npx fitbit來登入，并且build整個檔案
+
+更新：為了避免下載麻煩，我已經將node module資料夾從雲端硬碟中刪除

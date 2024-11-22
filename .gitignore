@@ -1,0 +1,52 @@
+# 忽略操作系統產生的檔案
+.DS_Store
+Thumbs.db
+
+# 忽略 Node.js 專案的 node_modules
+node_modules/
+
+# 忽略 Python 的虛擬環境及臨時檔案
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.eggs
+.Python
+env/
+venv/
+
+# 忽略編譯檔案
+*.class
+*.o
+*.so
+*.out
+*.exe
+*.dll
+
+# 忽略 IDE 和編輯器相關的設定檔案
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# 忽略日誌檔案和暫存檔案
+*.log
+*.tmp
+*.swp
+*.bak
+*.old
+
+# 忽略版本控制的 Git 設定
+.git/
+
+# Java 專案
+*.jar
+*.war
+*.ear
+target/
+
+checkpoints/
+*.h5
+*.ckpt
+*.pth
+*.pb
+model/
